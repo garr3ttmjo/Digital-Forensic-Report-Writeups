@@ -1,132 +1,540 @@
 # Linux Forensics Scenario
 
-**Date:** January 29th, 2024
+**Date:** January 29, 2024  
+**Author:** Garrett Jones  
 
-**Author:** Garrett Jones
+Challenge created by Jean Carlos Martins Miguel and available at:
 
-Challenge created by Jean Carlos Martins Miguel and can be found at:
- * https://cfreds.nist.gov/all/utfpr/LinuxForensicsScenario
- * https://drive.google.com/drive/folders/1_C-YorlEjuiCF6dBPmKhLd2Z7l43Q9YN
+- https://cfreds.nist.gov/all/utfpr/LinuxForensicsScenario
+- https://drive.google.com/drive/folders/1_C-YorlEjuiCF6dBPmKhLd2Z7l43Q9YN
 
-**Concepts:** Linux Disk Forensics, Steganography, Decryption
+## Concepts
 
-## Scenario
-On May 3, 2007, the Federal Police, in an operation against the distribution of child pornography seized a computer in a residence on Zero street in São Paulo. The computer was seized and the computer owner confessed to the police that he has illicit files related to sexual abuse and exploitation and that he sells this content. So, you were hired to work with the police as a Forensics Analyst, now you have to help them to find as much evidence as you can that will be used as proof  in court to send the criminal to jail.
+- Linux Disk Forensics
+- Filesystem Analysis
+- Deleted File Recovery
+- Steganography
+- Encryption and Decryption
+- Browser Artifact Analysis
 
-**Note:** Obviously it is just a machine in order to people study, developing and learn computer forensics , so there is no child sexual abuse and exploitation images, so for the purpose of this scenario/challenge we created the story above, and the images that will be considered illegal are just pistache photos taken from a machine learning dataset.
+---
 
-## Investigation
-The source we are given is a dd file of a ext4 Linux system. You can find this information by running "disktype" on the disk. 
+# Scenario
+
+A Linux computer was seized during a simulated law enforcement investigation involving the distribution of illegal content. The computer owner admitted to possessing and distributing illicit files.
+
+As a forensic analyst assisting law enforcement, the objective was to examine the acquired disk image, identify relevant artifacts, recover deleted data, analyze user activity, and locate evidence that could support the investigation.
+
+**Note:** This scenario is a forensic training exercise created for educational purposes. No actual illegal content exists within the evidence image. The images considered suspicious in this challenge are simulated files generated from a machine learning dataset.
+
+---
+
+# Investigation
+
+The provided evidence consisted of a raw (`dd`) disk image from an ext4 Linux filesystem.
+
+The filesystem type was identified using `disktype`:
 
 ![image](https://github.com/garr3ttmjo/Writeups/assets/108881417/0a7e9632-7797-4d66-b641-85b92d7b9c0c)
 
-First thing we want to do is make sure the local copy of the disk we have is an exact match to the original to ensure data integrity. Normally we would match the hash calculated during the aquisition but we weren't given that info so we will just calculate the hash of the dd file after our download. At the end of our investigation this will allow us to check that we didn't alter the data source in any way.
-	SHA1: 18a91d4a2182627794a298563a73ce6c65b00065  iso.dd
-	MD5: e5dc2aec9a7332567654ebf6d8ce8677  iso.dd 
+---
 
-The tools I will be using on the investigation include FTK Imager, Autopsy, and SIFT Workstation. FTK Imager provides an easy way investigate an image file without the need to mount it. Autopsy can provide valuable information that it's ingest modules find that are difficult to detect manually. 
-SIFT Workstation provides the capabilities to mount this Linux dd file and navigate through it like a normal file system.
+## Evidence Integrity Verification
 
-#### Important Linux Artifacts
-Below are some Linux Artifacts that are always worth checking because they can hold valuable data in an investigation.
+Before beginning analysis, the evidence image was hashed to establish a baseline and verify data integrity throughout the investigation.
 
-#### Bash History
- This contains recent commands the user ran. From this we can see that the 4 images hashed are worth locating, be aware of hidden data in images using Steghide, and GPG encrypted files.
- 
- ![image](https://github.com/garr3ttmjo/Writeups/assets/108881417/a21dee4c-5ca2-4d16-8b3e-5169bba91128)
+The calculated hashes were:
+```
+SHA1: 18a91d4a2182627794a298563a73ce6c65b00065
+MD5: e5dc2aec9a7332567654ebf6d8ce8677
+```
 
-#### etc/hosts
-This can contain important network configurations made by the user but in this case nothing looks suspicious.
+These values can be used to confirm that the original evidence image was not modified during examination.
+
+---
+
+# Tools Used
+
+The following forensic tools were used during analysis:
+
+| Tool | Purpose |
+|---|---|
+| FTK Imager | Examine disk image contents without mounting |
+| Autopsy | Automated forensic artifact extraction and analysis |
+| SIFT Workstation | Mount and analyze Linux filesystem artifacts |
+| Steghide | Identify and extract hidden data from images |
+| John the Ripper | Password cracking |
+| GPG | Decryption of encrypted evidence |
+| DB Browser for SQLite | Browser database analysis |
+
+FTK Imager was used for initial examination of the disk image without modifying the evidence source. Autopsy was used to process filesystem artifacts and identify potentially relevant evidence automatically. SIFT Workstation was used to mount and interact with the Linux filesystem directly.
+
+---
+
+# Important Linux Artifacts
+
+Linux systems contain several artifacts that are commonly examined during forensic investigations. These locations can provide valuable information about user activity, system configuration, authentication events, and potential evidence.
+
+The following artifacts were reviewed during analysis:
+
+- Bash history
+- Network configuration files
+- Authentication logs
+- User account files
+- Browser history databases
+- Deleted file locations
+- Encryption keys and encrypted files
+
+---
+
+# Bash History
+
+The Bash history file contains commands previously executed by the user.
+
+Analysis of the user's Bash history revealed several important commands, including:
+
+- Hashing multiple image files using `sha1sum`
+- References to steganography using Steghide
+- References to encrypted files using GPG
+
+These commands provided investigative leads and identified specific files requiring further examination.
+
+![image](https://github.com/garr3ttmjo/Writeups/assets/108881417/a21dee4c-5ca2-4d16-8b3e-5169bba91128)
+
+---
+
+# /etc/hosts
+
+The `/etc/hosts` file contains local hostname mappings and network configuration information.
+
+Review of this artifact did not reveal any suspicious modifications or notable findings.
 
 ![image](https://github.com/garr3ttmjo/Writeups/assets/108881417/659736cb-1581-4aa7-bf54-d840f088a8ff)
 
-#### auth.log - sudo usage
-This contains the logs of sudo or elevated priviledge run commands which can often show important actions.
+---
+
+# auth.log - Sudo Activity
+
+The `auth.log` file contains authentication events, including sudo usage and commands executed with elevated privileges.
+
+Review of this log identified activity involving:
+
+- Steghide
+- Telegram Desktop
+
+These findings provided additional investigative leads regarding tools and applications used on the system.
 
 ![image](https://github.com/garr3ttmjo/Writeups/assets/108881417/cb2659f4-b279-4148-9664-6ea5fa428044)
 
-From the content here we might want to look into Steghide and telegram-desktop usage.
+---
 
-#### etc/shadow and etc/passwd
-These files contain user account information and the hash of the user's password. You can use a tool like John the Ripper and its unshadow feature to crack the hash to get the user's password.
+# /etc/passwd and /etc/shadow
+
+The `/etc/passwd` and `/etc/shadow` files contain Linux user account information.
+
+- `/etc/passwd` contains account information and user identifiers.
+- `/etc/shadow` contains password hashes.
+
+Password hashes can be extracted and analyzed using password recovery tools such as John the Ripper.
+
+The recovered credentials can provide additional insight into user activity and access to protected files.
 
 ![image](https://github.com/garr3ttmjo/Writeups/assets/108881417/c90b0368-1c75-492f-bf6f-7197a4b9827d)
 
-## Questions
+---
 
-#### What’s the name of a hidden folder? and where is it? Is it a suspicious folder? How many files did you find inside this folder?
-To look for a hidden folder I am going to navigate to the home/ubuntuforensics folder and run "ls -ld .?*" to find all hidden items in the directory.
-This brings up the normal hidden folders but some new ones as well. The one that sticks out the most is ".for sales_copy" directory. We can cd into
-this to view the contents. I see these are pistachio pictures and will now run "ls -1 | wc -l" to count the number of files in the directory. The count is 833.
+# Findings
 
-#### Write the name of suspicious files you’ve found and the path where they are located! Hint: Do not forget that a skilled professional would look anywhere and any kind of file such as audios,text files,videos, etc.Here will be considered as suspicious files just .txt files.
-This involves exploring the system to find files that contain information important to the base.
-	
-* /home/ubuntuforensics/Documents/clients/clients_email
+## Finding 1: Hidden Directory Containing Suspicious Files
 
-![image](https://github.com/garr3ttmjo/Writeups/assets/108881417/b182b084-1461-4936-9708-5e3b9dc7e0e7)
+A search for hidden directories was performed from the user's home directory.
 
-* /home/ubuntuforensics/Documents/byName/for_clients.txt
+Command used:
 
- ![image](https://github.com/garr3ttmjo/Writeups/assets/108881417/0f1490d3-90b5-4e7d-8005-a6de4ea14a1f)
+```bash
+ls -ld .?*
+```
 
-These provide information on clients potentially involved in bad activities.
+A suspicious hidden directory was identified:
 
-#### How many deleted images were you able to recover? Both images that are in the recycle bin and images deleted from the recycle bin (Just pistaches pictures are considered as suspicious).
-For deleted files we want to check the recycle bin or trash which is located at home/ubuntuforensics/.local/share/Trash. Here we can see a files directory containing two directories ("#" and "_") which have a total of 130 pistachio images in them.
+```
+/home/ubuntuforensics/.for sales_copy
+```
 
-#### Did you find any suspicious “zip” file which can be a possible proof? What is or are the name of these files and the password ?
-There are various zip files but two stick out because FTK Imager doesn't allow me to see the images inside which likely means they are password protected.
-The zip files are _.zip and #.zip located in the /Downloads/Images directory. I'll extract them and then run 7z from the command line with the password I found
-from cracking the Private.key in the question below but you could do the same process but with zip2john or fcrackzip. Here I have the password so can run 7z like "7z -p"root" e \#.zip"
-and get the pistachio images.
+The directory contained a large number of image files.
 
-#### Were you able to identify any kind of steganography? If yes, what kind of information did you extract from the suspicious file? How many files could you find that were applied steganography? And how are they called?
-Just triaging around the system I came across the Documents/special client directory where the images didn't seem to match up with the others I'd seen. 
-So I extracted all of the images to a separate folder and ran this bash line to loop through the images and see if anything could be extracted using the password we have found "root". 
-The code is "for image in *.jpg; do steghide extract -sf "$image" -p root && echo "File found in: $image" || echo "No file found in: $image"; done" and Steghide extracts 5 pistachio images from the unsplash jpgs.
+The total file count was determined using:
 
-![image](https://github.com/garr3ttmjo/Writeups/assets/108881417/02e8c4bb-761f-413e-b1ba-80cb14228db5)
-	
-#### There are browsers  installed so maybe the criminal used it as  a tool to do some kind of illicit search on the Internet. Could you find any kind of url or anything related to suspicious searches? Here we considered as suspicious searches every website that contains the following string: F0r3ns1cs
-I found evidence of two browsers on the system, Firefox and Tor. Tor is used for its anonymity so it is unlikely we will find useful information there but still worth a try.
-For both browsers I will locate the places.sqlite files which can be found under a profile in each browser directory. Then you can use a tool like DB Browser for SQLite to view the database files.
-Within the database the table we want to view is the moz_places table. Tor's moz_places didn't reveal any valuable url information but it did have content meaning it was used. Firefox's moz_places
-did reveal the information we were looking for. There is a google search for for3ns1cs and f0r3ns1cs and then a visit to the url https://compactor.bandcamp.com/album/d1g1tal-f0r3ns1cs. This is the
-suspicious search history we wanted. There were also searches for police departments and computer crime which is also suspicious in a child exploitation case.
+```bash
+ls -1 | wc -l
+```
 
-![image](https://github.com/garr3ttmjo/Writeups/assets/108881417/8fc5d3e8-75ee-4e0c-b9f9-7d1ece23f975)
+Result:
 
-![image](https://github.com/garr3ttmjo/Writeups/assets/108881417/d44eb1e2-9566-44f8-9c03-b77c9734b12f)
+```
+833 files
+```
 
-##### The police have a database of file hashes that have already been seized, whether from illegal sites or illegally distributed content, so if they find a match to those hash it means that those files were found on sites that practiced criminal/illegal activities.So your goal is to find the files that have the following hashes (SHA1 hash function):
+The hidden location and contents made this directory a significant artifact during the investigation.
 
-	* f1010ce85f3bac86c564403f454db46332f2937e  
-	* a9ce3a402bd06756afa6caa6cd985381cf544ed7  
-	* 2144749eaea65bf7bc8d40a071eab444a382ee1d  
-	* ea7595007b7b9d8482fd3cc3d06035802bf79287 
+---
+# Finding 2: Suspicious Text Files
 
-I am sure there are tools out there that can do a scan of all the files on the system and match them to these hashes but I couldn't find one to do it simply.
-Instead I had happened to view the .bash_history file which stores recent bash commands the user ran and saw they used the "sha1sum" command on 4 images. 
-Now we can just need to find these images and hash them to see if the values are the same.
+A review of user-created documents identified multiple text files containing information relevant to the investigation.
 
-Manually looking through the folders  I found Fig1848.jpg in the Downloads/Images/Images directory has a hash of ea7595007b7b9d8482fd3cc3d06035802bf79287 and matches the 4th hash value on the list but the file name is different so there must be another place to look.
-Kept looking and found the Downloads/Images Backup/Images folder which contains the 4 files we are looking for. I ran this bash code to get the hashes of the 4 files "for file in Figure216.jpg Figure233.jpg Figure235.jpg Figure1848.jpg; do sha1sum "$file"; done".
-And the output matches the files we were looking for.
+The following files were identified:
 
-![image](https://github.com/garr3ttmjo/Writeups/assets/108881417/6860bf80-b331-4c66-9fe3-7d4c21a694f6)
-                                                                                       
-#### There are encrypted files which can be used as proof, were you able to find them? Could you crack them? Did you find any cryptographic key? Write the name of these  files. Hint: If you find the private key you can crack the files easily.
-Upon my original triage of the system and ubuntuforensics directory I found a Private.key file used for a PGP encryption. Then later on within the "Pics_to_clients" directory you find GPG encrypted jpegs.
-GPG is an implementation of the PGP encryption so we might try using this Private key to crack the encryption.
+```
+/home/ubuntuforensics/Documents/clients/clients_email
+```
 
-The tool I am going to use for this is John the Ripper on my windows machine. First we have to convert the private key into a hash John can read. 
-To do this we can run "C:\Tools\john-1.9.0-jumbo-1-win64\run\gpg2john.exe" "D:\Linux Forensics\Suspicious Artifacts\Private.key > gpghash.txt". So we have the necessary hash to be cracked and now we can run John on it.
-I downloaded 10-million-password-list-top-1000000.txt as my password word list and then ran "C:\Tools\john-1.9.0-jumbo-1-win64\run\john.exe" --wordlist="10-million-password-list-top-1000000.txt" "D:\Linux Forensics\Suspicious Artifacts\gpghash.txt"
-This successfully cracked the hash and gave the password used to create the private key. 
+![Clients Email](https://github.com/garr3ttmjo/Writeups/assets/108881417/b182b084-1461-4936-9708-5e3b9dc7e0e7)
 
-Now I am going to go to my Linux system and run "apt-get install gnupg" to get the gpg software and then run 
-gpg --import -o /mnt/d/Linux\ Forensics/Suspicious\ Artifacts/Private.key to import the private key to my wallet. Then I can navigate to the "Pics_to_clients" directory I can run this bash code 
-"for i in *.gpg; do if [ -e "$i" ]; then gpg -d -o "$(echo "$i" | sed 's/\.gpg$//')" "$i"; fi; done" to loop through encrypted files and decrypt them. Run this and I only have to type the password once and it outputs the decrypted files.
+Additional suspicious content was identified in:
 
-![image](https://github.com/garr3ttmjo/Writeups/assets/108881417/cdd2bb46-42c2-4f9c-be79-c1a186696cde)
+```
+/home/ubuntuforensics/Documents/byName/for_clients.txt
+```
+
+![For Clients](https://github.com/garr3ttmjo/Writeups/assets/108881417/0f1490d3-90b5-4e7d-8005-a6de4ea14a1f)
+
+These files contained information related to potential clients and activity relevant to the investigation.
+
+---
+
+# Finding 3: Deleted Image Recovery
+
+Deleted files were examined through the Linux trash directory:
+
+```
+/home/ubuntuforensics/.local/share/Trash
+```
+
+The trash directory contained the following folders:
+
+```
+#
+_
+```
+
+The deleted contents were recovered and analyzed.
+
+Results:
+
+```
+130 deleted image files recovered
+```
+
+These recovered images were identified as suspicious based on the scenario requirements.
+
+The recovery of deleted files demonstrated the importance of examining filesystem remnants, even after users attempt to remove evidence.
+
+---
+
+# Finding 4: Password Protected ZIP Archives
+
+During filesystem examination, multiple ZIP archives were identified.
+
+Two files were considered suspicious because their contents could not be viewed through FTK Imager, indicating that they were likely password protected.
+
+Identified archives:
+
+```
+/Downloads/Images/#.zip
+
+/Downloads/Images/_.zip
+```
+
+The password was later recovered through analysis of an encrypted private key artifact.
+
+The archives were extracted using:
+
+```bash
+7z -p"root" e "#.zip"
+```
+
+The extracted files contained additional suspicious image evidence.
+
+---
+
+# Finding 5: Steganography Analysis
+
+During artifact review, a directory containing unusual image files was identified:
+
+```
+/Documents/special client
+```
+
+The images appeared different from other images located throughout the filesystem and were analyzed for hidden data.
+
+Steganography analysis was performed using Steghide.
+
+The following command was used to extract hidden content:
+
+```bash
+steghide extract -sf image.jpg -p root
+```
+
+To analyze multiple images automatically:
+
+```bash
+for image in *.jpg; do
+    steghide extract -sf "$image" -p root && echo "File found in: $image" || echo "No file found in: $image"
+done
+```
+
+The analysis identified:
+
+```
+5 images containing embedded data
+```
+
+Hidden files were successfully extracted from the images.
+
+![Steganography Extraction](https://github.com/garr3ttmjo/Writeups/assets/108881417/02e8c4bb-761f-413e-b1ba-80cb14228db5)
+
+---
+
+# Finding 6: Browser Artifact Analysis
+
+Browser artifacts were analyzed to determine whether the user performed suspicious searches or accessed relevant websites.
+
+The system contained evidence of two browsers:
+
+- Firefox
+- Tor Browser
+
+Browser history was stored in:
+
+```
+places.sqlite
+```
+
+The SQLite databases were examined using DB Browser for SQLite.
+
+The primary table analyzed was:
+
+```
+moz_places
+```
+
+This table contains browser history entries including visited URLs and search activity.
+
+---
+
+## Tor Browser Analysis
+
+The Tor browser database confirmed that Tor had been used on the system.
+
+However, no significant suspicious URLs were identified.
+
+---
+
+## Firefox Analysis
+
+Firefox history contained multiple suspicious searches.
+
+Identified search terms included:
+
+```
+f0r3ns1cs
+F0r3ns1cs
+```
+
+Additional suspicious browsing activity included:
+
+```
+https://compactor.bandcamp.com/album/d1g1tal-f0r3ns1cs
+```
+
+The browser history also contained searches related to:
+
+- Police departments
+- Computer crime
+- Digital forensics
+
+These artifacts provided additional context regarding the user's online activity.
+
+![Firefox History](https://github.com/garr3ttmjo/Writeups/assets/108881417/8fc5d3e8-75ee-4e0c-b9f9-7d1ece23f975)
+
+![Browser History](https://github.com/garr3ttmjo/Writeups/assets/108881417/d44eb1e2-9566-44f8-9c03-b77c9734b12f)
+
+---
+# Finding 7: Known Hash Matching
+
+During the investigation, law enforcement provided a database of known SHA1 hashes associated with previously identified illegal content.
+
+The objective was to locate files on the system matching the following SHA1 values:
+
+```
+f1010ce85f3bac86c564403f454db46332f2937e
+
+a9ce3a402bd06756afa6caa6cd985381cf544ed7
+
+2144749eaea65bf7bc8d40a071eab444a382ee1d
+
+ea7595007b7b9d8482fd3cc3d06035802bf79287
+```
+
+Initially, the Bash history artifact was reviewed and revealed that the user had previously calculated SHA1 hashes for four image files using:
+
+```bash
+sha1sum
+```
+
+This provided a lead for locating the files of interest.
+
+Further filesystem analysis identified one matching file:
+
+```
+Downloads/Images/Images/Fig1848.jpg
+```
+
+The file produced the following SHA1 hash:
+
+```
+ea7595007b7b9d8482fd3cc3d06035802bf79287
+```
+
+Additional investigation identified a backup directory containing all four matching files:
+
+```
+/Downloads/Images Backup/Images
+```
+
+The recovered files were:
+
+```
+Figure216.jpg
+
+Figure233.jpg
+
+Figure235.jpg
+
+Figure1848.jpg
+```
+
+The hashes were verified using:
+
+```bash
+for file in Figure216.jpg Figure233.jpg Figure235.jpg Figure1848.jpg; do sha1sum "$file"; done
+```
+
+The resulting hashes matched the provided law enforcement database.
+
+![Hash Matching](https://github.com/garr3ttmjo/Writeups/assets/108881417/6860bf80-b331-4c66-9fe3-7d4c21a694f6)
+
+---
+
+# Finding 8: Encrypted Evidence Recovery
+
+Encrypted files were identified during filesystem analysis.
+
+A private encryption key was discovered:
+
+```
+Private.key
+```
+
+Further investigation identified encrypted image files located in:
+
+```
+Pics_to_clients
+```
+
+The encryption method was determined to be GPG, which is an implementation of the OpenPGP standard.
+
+The recovered private key provided a method to decrypt the encrypted evidence.
+
+---
+
+## Password Recovery
+
+The private key required a password before it could be used.
+
+The key was first converted into a format compatible with John the Ripper:
+
+```bash
+gpg2john Private.key > gpghash.txt
+```
+
+John the Ripper was then used with a password wordlist:
+
+```bash
+john --wordlist=10-million-password-list-top-1000000.txt gpghash.txt
+```
+
+The password was successfully recovered:
+
+```
+root
+```
+
+---
+
+## Importing the Private Key
+
+The recovered private key was imported into GPG:
+
+```bash
+gpg --import Private.key
+```
+
+After importing the key, the encrypted files could be decrypted.
+
+---
+
+## Decrypting Evidence
+
+The following command was used to decrypt multiple GPG encrypted files:
+
+```bash
+for i in *.gpg; do
+    if [ -e "$i" ]; then
+        gpg -d -o "$(echo "$i" | sed 's/\.gpg$//')" "$i"
+    fi
+done
+```
+
+The command successfully decrypted the encrypted image files.
+
+![GPG Decryption](https://github.com/garr3ttmjo/Writeups/assets/108881417/cdd2bb46-42c2-4f9c-be79-c1a186696cde)
+
+---
+
+# Final Summary of Findings
+
+The forensic examination of the Linux disk image identified multiple artifacts of investigative value.
+
+The following evidence was recovered:
+
+| Finding | Artifact |
+|---|---|
+| Hidden directory | `/home/ubuntuforensics/.for sales_copy` containing 833 files |
+| Suspicious documents | Client-related text files |
+| Deleted evidence | 130 recovered images from Linux trash |
+| Password protected archives | `#.zip` and `_.zip` |
+| Steganographic content | 5 images containing hidden data |
+| Browser activity | Suspicious Firefox searches and URLs |
+| Known hash matches | Four files matching provided SHA1 values |
+| Encrypted evidence | GPG encrypted images recovered using private key |
+
+---
+
+# Conclusion
+
+This investigation demonstrated the importance of examining multiple categories of Linux forensic artifacts, including filesystem metadata, user activity, deleted data, browser history, encryption artifacts, and hidden storage mechanisms.
+
+Analysis of the evidence image resulted in the identification and recovery of:
+
+- Hidden files and directories
+- Deleted artifacts
+- Suspicious documents
+- Password-protected archives
+- Steganographically hidden content
+- Encrypted evidence
+- Files matching known hash values
+
+The investigation highlights how forensic analysts must examine both obvious and concealed artifacts to reconstruct user activity and identify evidence.
+
+---
